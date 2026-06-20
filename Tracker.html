@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Exercise Calendar</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f6;
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+    margin: 0;
+  }
+  .calendar-container {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+  }
+  h2 {
+    color: #2c3e50;
+    margin-top: 0;
+    margin-bottom: 20px;
+  }
+  .month-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .month-header button {
+    background: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding: 5px 15px;
+    font-size: 16px;
+    cursor: pointer;
+    color: #2c3e50;
+    transition: background 0.2s;
+  }
+  .month-header button:hover {
+    background: #e2e6ea;
+  }
+  .month-header h3 {
+    margin: 0;
+    color: #007bff;
+  }
+  .weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    font-weight: bold;
+    color: #6c757d;
+    margin-bottom: 10px;
+    font-size: 14px;
+  }
+  .days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+  }
+  .day {
+    aspect-ratio: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    color: #495057;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    user-select: none;
+  }
+  .day:hover:not(.empty) {
+    border-color: #28a745;
+  }
+  .day.completed {
+    background-color: #28a745;
+    color: white;
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+  }
+  .day.empty {
+    background-color: transparent;
+    cursor: default;
+  }
+  .stats {
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+    font-size: 15px;
+    color: #6c757d;
+  }
+  #month-total {
+    color: #28a745;
+    font-size: 18px;
+  }
+</style>
+</head>
+<body>
+
+<div class="calendar-container">
+  <h2>Activity Calendar</h2>
+  
+  <div class="month-header">
+    <button id="prev-month">&lt;</button>
+    <h3 id="month-display">Month Year</h3>
+    <button id="next-month">&gt;</button>
+  </div>
+  
+  <div class="weekdays">
+    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+  </div>
+  
+  <div id="days-grid" class="days-grid"></div>
+  
+  <div class="stats">
+    Days worked out this month: <strong id="month-total">0</strong>
+  </div>
+</div>
+
+<script>
+  const monthDisplay = document.getElementById('month-display');
+  const daysGrid = document.getElementById('days-grid');
+  const monthTotalDisplay = document.getElementById('month-total');
+  
+  let currentDate = new Date();
+  // Load saved data, or start empty
+  let completedDates = JSON.parse(localStorage.getItem('myExerciseCalendar')) || {};
+
+  function renderCalendar() {
+    daysGrid.innerHTML = '';
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    monthDisplay.innerText = `${monthNames[month]} ${year}`;
+    
+    let monthCompletedCount = 0;
+
+    // Fill in empty days before the 1st of the month
+    for (let i = 0; i < firstDay; i++) {
+      const emptyDiv = document.createElement('div');
+      emptyDiv.classList.add('day', 'empty');
+      daysGrid.appendChild(emptyDiv);
+    }
+
+    // Create the actual days of the month
+    for (let i = 1; i <= daysInMonth; i++) {
+      const dayDiv = document.createElement('div');
+      dayDiv.classList.add('day');
+      dayDiv.innerText = i;
+      
+      // Create a unique ID for each day (e.g., "2026-2-15")
+      const dateString = `${year}-${month}-${i}`;
+      
+      // If it was previously clicked, mark it completed
+      if (completedDates[dateString]) {
+        dayDiv.classList.add('completed');
+        monthCompletedCount++;
+      }
+
+      // Add click event to toggle
+      dayDiv.addEventListener('click', () => {
+        if (completedDates[dateString]) {
+          delete completedDates[dateString]; // Unmark
+          dayDiv.classList.remove('completed');
+          monthCompletedCount--;
+        } else {
+          completedDates[dateString] = true; // Mark as done
+          dayDiv.classList.add('completed');
+          monthCompletedCount++;
+        }
+        
+        // Save to browser immediately
+        localStorage.setItem('myExerciseCalendar', JSON.stringify(completedDates));
+        monthTotalDisplay.innerText = monthCompletedCount;
+      });
+
+      daysGrid.appendChild(dayDiv);
+    }
+    
+    monthTotalDisplay.innerText = monthCompletedCount;
+  }
+
+  // Navigation buttons
+  document.getElementById('prev-month').addEventListener('click', () => {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    renderCalendar();
+  });
+
+  document.getElementById('next-month').addEventListener('click', () => {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    renderCalendar();
+  });
+
+  // Render immediately on load
+  renderCalendar();
+</script>
+</body>
+</html>
